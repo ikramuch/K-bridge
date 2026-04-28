@@ -128,7 +128,7 @@ h1{font-size:18px;font-weight:600;color:var(--color-text-primary);margin-bottom:
 <body>
 
 <!-- ── MODAL SUPABASE ── -->
-<div class="modal-overlay" id="modal">
+<div class="modal-overlay" id="modal" style="display:none">
   <div class="modal">
     <h2>Connexion à la base de données</h2>
     <p class="modal-desc">Renseigne les informations de ton projet Supabase pour que les données soient sauvegardées en permanence et partagées entre tous les consultants.</p>
@@ -397,15 +397,13 @@ function switchTab(t,el){
   if(t==='saisie')initForm();
 }
 
+const SUPABASE_URL = 'https://vfnllydadbmfqysmjtah.supabase.co';
+const SUPABASE_KEY = 'COLLE_ICI_TA_CLÉ_ANON';
+
 window.addEventListener('DOMContentLoaded',()=>{
-  const u=localStorage.getItem('sb_url'),k=localStorage.getItem('sb_key');
-  if(u&&k){
-    document.getElementById('sb-url').value=u;
-    document.getElementById('sb-key').value=k;
-    SB=supabase.createClient(u,k);
-    document.getElementById('modal').style.display='none';
-    loadData();
-  }
+  SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  document.getElementById('modal').style.display = 'none';
+  loadData();
   renderDiag(0);
 });
 </script>
