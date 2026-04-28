@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Base de connaissances — eSupplier / SPM</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f5f5f3;--ink:#1a1a18;--ink2:#3a3830;--ink3:#6b6b67;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.25);--border3:rgba(0,0,0,0.35);
+  --radius:8px;--radius-lg:12px;--font:system-ui,-apple-system,sans-serif;
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#1e1e1c;--bg2:#2a2a28;--ink:#f0efea;--ink2:#ccc9c0;--ink3:#9e9e98;
+  --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);--border3:rgba(255,255,255,0.3);}
+}
+body{font-family:var(--font);background:var(--bg2);color:var(--ink);min-height:100vh}
+
+/* ── AUTH SCREEN ── */
+.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.auth-box{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:2rem;width:100%;max-width:400px}
+.auth-logo{font-size:13px;font-weight:600;color:var(--ink3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:1.5rem}
+.auth-title{font-size:20px;font-weight:600;color:var(--ink);margin-bottom:.25rem}
+.auth-sub{font-size:13px;color:var(--ink3);margin-bottom:1.5rem;line-height:1.5}
+.auth-tabs{display:flex;gap:0;margin-bottom:1.5rem;border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.auth-tab{flex:1;padding:8px;font-size:13px;font-weight:500;color:var(--ink3);background:none;border:none;cursor:pointer;font-family:var(--font);transition:all .15s}
+.auth-tab.active{background:var(--ink);color:var(--bg)}
+.auth-field{display:flex;flex-direction:column;gap:5px;margin-bottom:.9rem}
+.auth-field label{font-size:12.5px;font-weight:500;color:var(--ink3)}
+.auth-field input{font-size:14px;padding:9px 12px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--bg2);color:var(--ink);outline:none;font-family:var(--font);width:100%}
+.auth-field input:focus{border-color:var(--border2)}
+.btn-auth{width:100%;padding:10px;background:var(--ink);color:var(--bg);border:none;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;font-family:var(--font);margin-top:.5rem}
+.btn-auth:hover{opacity:.85}
+.btn-auth:disabled{opacity:.5;cursor:not-allowed}
+.auth-err{background:#FCEBEB;color:#791F1F;border-radius:var(--radius);padding:10px 12px;font-size:13px;margin-top:.75rem;display:none}
+.auth-ok{background:#EAF3DE;color:#27500A;border-radius:var(--radius);padding:10px 12px;font-size:13px;margin-top:.75rem;display:none}
+
+/* ── APP SCREEN ── */
+.app-screen{display:none;min-height:100vh}
+.topbar{background:var(--bg);border-bottom:0.5px solid var(--border);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between}
+.topbar-left{font-size:14px;font-weight:600;color:var(--ink)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.user-chip{font-size:12px;color:var(--ink3);background:var(--bg2);padding:4px 12px;border-radius:20px;border:0.5px solid var(--border)}
+.btn-logout{font-size:12px;color:var(--ink3);background:none;border:0.5px solid var(--border2);padding:4px 12px;border-radius:var(--radius);cursor:pointer;font-family:var(--font)}
+.btn-logout:hover{background:var(--bg2)}
+.container{max-width:780px;margin:0 auto;padding:2rem 1rem}
+.tabs{display:flex;gap:8px;margin-bottom:1.5rem;border-bottom:0.5px solid var(--border)}
+.tab{padding:8px 16px;font-size:14px;font-weight:500;color:var(--ink3);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s;font-family:var(--font)}
+.tab.active{color:var(--ink);border-bottom:2px solid var(--ink)}
+.tab:hover:not(.active){color:var(--ink)}
+.view{display:none}.view.active{display:block}
+.metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem}
+.metric{background:var(--bg2);border-radius:var(--radius);padding:1rem}
+.metric-label{font-size:12px;color:var(--ink3);margin-bottom:4px}
+.metric-value{font-size:22px;font-weight:500;color:var(--ink)}
+.search-row{display:flex;gap:10px;margin-bottom:1rem}
+.search-row input{flex:1;font-size:14px;padding:8px 12px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--ink);outline:none;font-family:var(--font)}
+.search-row input:focus{border-color:var(--border2)}
+.filter-select{width:180px;font-size:14px;padding:8px 12px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--ink);outline:none;font-family:var(--font)}
+.problem-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:12px;transition:border-color .15s}
+.problem-card:hover{border-color:var(--border2)}
+.problem-card.expanded{border-color:var(--border3)}
+.card-header{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
+.cat-badge{font-size:11px;padding:3px 8px;border-radius:var(--radius);white-space:nowrap;font-weight:500;flex-shrink:0}
+.cat-access{background:#E6F1FB;color:#0C447C}
+.cat-spm{background:#EEEDFE;color:#3C3489}
+.cat-compte{background:#E1F5EE;color:#085041}
+.cat-autre{background:#F1EFE8;color:#444441}
+.card-title{font-size:14px;font-weight:500;color:var(--ink);flex:1;line-height:1.4}
+.expand-icon{font-size:14px;color:var(--ink3);transition:transform .2s;flex-shrink:0;margin-top:2px}
+.problem-card.expanded .expand-icon{transform:rotate(180deg)}
+.card-meta{display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap}
+.card-stat{font-size:12px;color:var(--ink3)}
+.card-stat span{font-weight:500;color:var(--ink)}
+.card-author{font-size:11px;color:var(--ink3);background:var(--bg2);padding:2px 8px;border-radius:10px;border:0.5px solid var(--border)}
+.card-actions{display:flex;gap:6px;margin-left:auto}
+.btn-edit{font-size:11px;padding:3px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:none;color:var(--ink3);cursor:pointer;font-family:var(--font)}
+.btn-edit:hover{background:var(--bg2);color:var(--ink)}
+.btn-delete{font-size:11px;padding:3px 10px;border:0.5px solid #f0a0a0;border-radius:var(--radius);background:none;color:#A32D2D;cursor:pointer;font-family:var(--font)}
+.btn-delete:hover{background:#FCEBEB}
+.card-body{display:none;margin-top:1rem;border-top:0.5px solid var(--border);padding-top:1rem}
+.problem-card.expanded .card-body{display:block}
+.section-label{font-size:12px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:12px}
+.section-label:first-child{margin-top:0}
+.solution-step{display:flex;gap:10px;margin-bottom:8px;font-size:13px;line-height:1.5;color:var(--ink)}
+.step-num{width:20px;height:20px;border-radius:50%;background:#EEEDFE;color:#3C3489;font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.note-box{background:#FAEEDA;border-radius:var(--radius);padding:10px 12px;font-size:13px;color:#633806;line-height:1.5;margin-top:8px}
+.empty{text-align:center;padding:2rem;color:var(--ink3);font-size:14px}
+.loading{display:flex;align-items:center;gap:10px;padding:1.5rem;color:var(--ink3);font-size:14px}
+.spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--ink3);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:1.5rem}
+.progress-fill{height:100%;background:#534AB7;border-radius:2px;transition:width .3s}
+.diag-step{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem}
+.diag-question{font-size:16px;font-weight:500;color:var(--ink);margin-bottom:1rem}
+.diag-options{display:flex;flex-direction:column;gap:8px}
+.diag-opt{display:flex;align-items:center;gap:10px;padding:10px 14px;border:0.5px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:14px;color:var(--ink);background:var(--bg);transition:border-color .15s,background .15s;font-family:var(--font);text-align:left}
+.diag-opt:hover{border-color:var(--border2);background:var(--bg2)}
+.diag-opt-icon{width:8px;height:8px;border-radius:50%;background:var(--border2);flex-shrink:0}
+.diag-result{background:#EEEDFE;border-radius:var(--radius-lg);padding:1.25rem;margin-top:1rem}
+.diag-result-title{font-size:15px;font-weight:500;color:#3C3489;margin-bottom:10px}
+.diag-back{font-size:13px;color:var(--ink3);background:none;border:none;cursor:pointer;padding:0;margin-top:12px;display:block;font-family:var(--font)}
+.diag-back:hover{color:var(--ink)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.form-field{display:flex;flex-direction:column;gap:6px}
+.form-field.full{grid-column:1/-1}
+.form-field label{font-size:13px;font-weight:500;color:var(--ink3)}
+.form-field input,.form-field select,.form-field textarea{width:100%;font-size:14px;padding:8px 12px;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--ink);outline:none;font-family:var(--font)}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--border2)}
+.form-field textarea{height:80px;resize:vertical}
+.step-builder{border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;background:var(--bg)}
+.step-builder-row{display:flex;gap:8px;align-items:center}
+.step-builder-row input{flex:1}
+.btn-remove{background:none;border:none;color:var(--ink3);cursor:pointer;font-size:18px;padding:0 4px;line-height:1}
+.btn-remove:hover{color:#E24B4A}
+.btn-add{font-size:13px;color:var(--ink3);background:none;border:0.5px dashed var(--border2);border-radius:var(--radius);padding:8px 12px;cursor:pointer;width:100%;margin-bottom:1rem;font-family:var(--font)}
+.btn-add:hover{background:var(--bg2)}
+.btn-primary{background:var(--ink);color:var(--bg);border:none;padding:10px 24px;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;font-family:var(--font)}
+.btn-primary:hover{opacity:.85}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-cancel{background:none;border:0.5px solid var(--border2);color:var(--ink3);padding:10px 20px;border-radius:var(--radius);font-size:14px;cursor:pointer;font-family:var(--font);margin-left:10px}
+.btn-cancel:hover{background:var(--bg2)}
+.success-msg{background:#EAF3DE;color:#27500A;border-radius:var(--radius);padding:12px 16px;font-size:14px;margin-top:12px;display:none}
+.error-msg{background:#FCEBEB;color:#791F1F;border-radius:var(--radius);padding:12px 16px;font-size:14px;margin-top:12px;display:none}
+.steps-label{font-size:13px;font-weight:500;color:var(--ink3);margin-bottom:8px}
+.edit-banner{background:#FFF8E6;border:0.5px solid #f0c040;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:#7a5500;margin-bottom:1rem;display:none}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}.metric-row{grid-template-columns:1fr 1fr}.card-actions{margin-left:0;margin-top:4px}}
+</style>
+</head>
+<body>
+
+<!-- ══ ÉCRAN CONNEXION ══════════════════════════════════════════════════════ -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">eSupplier / SPM</div>
+    <div class="auth-title">Base de connaissances</div>
+    <p class="auth-sub">Connectez-vous pour accéder à la capitalisation des retours d'expérience consultants.</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login',this)">Connexion</button>
+      <button class="auth-tab" onclick="switchAuthTab('register',this)">Créer un compte</button>
+    </div>
+    <div id="auth-login">
+      <div class="auth-field"><label>Email</label><input type="email" id="login-email" placeholder="prenom.nom@entreprise.com"/></div>
+      <div class="auth-field"><label>Mot de passe</label><input type="password" id="login-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <button class="btn-auth" id="btn-login" onclick="doLogin()">Se connecter</button>
+    </div>
+    <div id="auth-register" style="display:none">
+      <div class="auth-field"><label>Prénom et Nom</label><input type="text" id="reg-name" placeholder="Ex: Sophie Martin"/></div>
+      <div class="auth-field"><label>Email professionnel</label><input type="email" id="reg-email" placeholder="prenom.nom@entreprise.com"/></div>
+      <div class="auth-field"><label>Mot de passe</label><input type="password" id="reg-pwd" placeholder="Min. 6 caractères" onkeydown="if(event.key==='Enter')doRegister()"/></div>
+      <button class="btn-auth" id="btn-register" onclick="doRegister()">Créer mon compte</button>
+    </div>
+    <div class="auth-err" id="auth-err"></div>
+    <div class="auth-ok" id="auth-ok"></div>
+  </div>
+</div>
+
+<!-- ══ APPLICATION ══════════════════════════════════════════════════════════ -->
+<div class="app-screen" id="app-screen">
+  <div class="topbar">
+    <div class="topbar-left">Base de connaissances — eSupplier / SPM</div>
+    <div class="topbar-right">
+      <span class="user-chip" id="user-chip">—</span>
+      <button class="btn-logout" onclick="doLogout()">Déconnexion</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('base',this)">Base de connaissances</button>
+      <button class="tab" onclick="switchTab('diag',this)">Diagnostic rapide</button>
+      <button class="tab" onclick="switchTab('saisie',this)">Ajouter un retour</button>
+    </div>
+
+    <!-- BASE -->
+    <div id="view-base" class="view active">
+      <div class="metric-row">
+        <div class="metric"><div class="metric-label">Problèmes documentés</div><div class="metric-value" id="stat-total">—</div></div>
+        <div class="metric"><div class="metric-label">Résolus en réunion</div><div class="metric-value" id="stat-resolved">—</div></div>
+        <div class="metric"><div class="metric-label">Catégories</div><div class="metric-value">4</div></div>
+      </div>
+      <div class="search-row">
+        <input type="text" id="search-input" placeholder="Rechercher un problème..." oninput="renderCards()"/>
+        <select class="filter-select" id="filter-cat" onchange="renderCards()">
+          <option value="">Toutes les catégories</option>
+          <option value="access">Accès eSupplier</option>
+          <option value="spm">Application SPM</option>
+          <option value="compte">Gestion de compte</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+      <div id="cards-container"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
+    </div>
+
+    <!-- DIAGNOSTIC -->
+    <div id="view-diag" class="view">
+      <div class="progress-bar"><div class="progress-fill" id="diag-progress" style="width:0%"></div></div>
+      <div id="diag-container"></div>
+    </div>
+
+    <!-- FORMULAIRE -->
+    <div id="view-saisie" class="view">
+      <div class="edit-banner" id="edit-banner">Mode édition — vous modifiez un retour existant.</div>
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Titre du problème</label>
+          <input type="text" id="f-title" placeholder="Ex: Le lien d'activation du compte ne fonctionne pas"/>
+        </div>
+        <div class="form-field">
+          <label>Catégorie</label>
+          <select id="f-cat">
+            <option value="access">Accès eSupplier</option>
+            <option value="spm">Application SPM</option>
+            <option value="compte">Gestion de compte</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Résolu en réunion ?</label>
+          <select id="f-resolved">
+            <option value="true">Oui</option>
+            <option value="false">Non — escalade nécessaire</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label>Description du problème</label>
+          <textarea id="f-desc" placeholder="Décrivez le contexte et les symptômes observés..."></textarea>
+        </div>
+      </div>
+      <div class="steps-label">Étapes de résolution</div>
+      <div id="steps-builder"></div>
+      <button class="btn-add" onclick="addStep()">+ Ajouter une étape</button>
+      <div class="form-field" style="margin-bottom:1rem">
+        <label>Note / conseil consultant</label>
+        <textarea id="f-note" placeholder="Ex: Vérifier d'abord si le fournisseur a bien reçu l'email..."></textarea>
+      </div>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">
+        <button class="btn-primary" id="save-btn" onclick="saveEntry()">Enregistrer ce retour</button>
+        <button class="btn-cancel" id="cancel-btn" onclick="cancelEdit()" style="display:none">Annuler</button>
+      </div>
+      <div class="success-msg" id="success-msg">Retour enregistré avec succès. Visible par tous les consultants.</div>
+      <div class="error-msg" id="error-msg">Erreur lors de l'enregistrement.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://vfnllydadbmfqysmjtah.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmbmxseWRhZGJtZnF5c21qdGFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMTU1MjIsImV4cCI6MjA5Mjg5MTUyMn0.34Pj0nuVR1LYzDqRdKk2yD21GsySx1ykYHuQJeobqwo';
+
+const SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const CAT_LABELS = {access:'Accès eSupplier',spm:'Application SPM',compte:'Gestion de compte',autre:'Autre'};
+const CAT_CLASSES = {access:'cat-access',spm:'cat-spm',compte:'cat-compte',autre:'cat-autre'};
+
+let db = [], steps = [''], currentOpts = [], diagHistory = [];
+let currentUser = null, currentUserName = '';
+let editingId = null;
+
+// ── AUTH ────────────────────────────────────────────────────────────────────
+function switchAuthTab(t, el) {
+  document.querySelectorAll('.auth-tab').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('auth-login').style.display  = t==='login'    ? 'block' : 'none';
+  document.getElementById('auth-register').style.display = t==='register' ? 'block' : 'none';
+  clearAuthMsg();
+}
+
+function clearAuthMsg() {
+  document.getElementById('auth-err').style.display = 'none';
+  document.getElementById('auth-ok').style.display  = 'none';
+}
+
+function showAuthErr(msg) {
+  const el = document.getElementById('auth-err');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('auth-ok').style.display = 'none';
+}
+
+function showAuthOk(msg) {
+  const el = document.getElementById('auth-ok');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('auth-err').style.display = 'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pwd   = document.getElementById('login-pwd').value;
+  if (!email || !pwd) { showAuthErr('Renseignez l\'email et le mot de passe.'); return; }
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = 'Connexion...';
+  clearAuthMsg();
+  const {data, error} = await SB.auth.signInWithPassword({email, password: pwd});
+  btn.disabled = false; btn.textContent = 'Se connecter';
+  if (error) { showAuthErr('Email ou mot de passe incorrect.'); return; }
+  onLogin(data.user);
+}
+
+async function doRegister() {
+  const name  = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pwd   = document.getElementById('reg-pwd').value;
+  if (!name || !email || !pwd) { showAuthErr('Tous les champs sont obligatoires.'); return; }
+  if (pwd.length < 6) { showAuthErr('Le mot de passe doit contenir au moins 6 caractères.'); return; }
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true; btn.textContent = 'Création...';
+  clearAuthMsg();
+  const {data, error} = await SB.auth.signUp({
+    email, password: pwd,
+    options: { data: { full_name: name } }
+  });
+  btn.disabled = false; btn.textContent = 'Créer mon compte';
+  if (error) { showAuthErr('Erreur : ' + error.message); return; }
+  if (data.user && data.user.identities && data.user.identities.length === 0) {
+    showAuthErr('Un compte existe déjà avec cet email.'); return;
+  }
+  showAuthOk('Compte créé ! Vous pouvez maintenant vous connecter.');
+  switchAuthTab('login', document.querySelectorAll('.auth-tab')[0]);
+}
+
+async function doLogout() {
+  await SB.auth.signOut();
+  currentUser = null; currentUserName = '';
+  document.getElementById('app-screen').style.display  = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function onLogin(user) {
+  currentUser = user;
+  currentUserName = user.user_metadata?.full_name || user.email.split('@')[0];
+  document.getElementById('user-chip').textContent = currentUserName;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display  = 'block';
+  loadData();
+  renderDiag(0);
+}
+
+// ── DATA ────────────────────────────────────────────────────────────────────
+async function loadData() {
+  document.getElementById('cards-container').innerHTML = '<div class="loading"><div class="spinner"></div>Chargement...</div>';
+  try {
+    const {data, error} = await SB.from('problems').select('*').order('created_at', {ascending: false});
+    if (error) throw error;
+    db = data;
+    renderCards();
+  } catch(e) {
+    document.getElementById('cards-container').innerHTML = '<div class="empty">Erreur de chargement.</div>';
+  }
+}
+
+function renderCards() {
+  const q   = (document.getElementById('search-input').value || '').toLowerCase();
+  const cat = document.getElementById('filter-cat').value;
+  const items = db.filter(d =>
+    (!q || (d.title+' '+(d.description||'')).toLowerCase().includes(q)) &&
+    (!cat || d.cat === cat)
+  );
+  document.getElementById('stat-total').textContent    = db.length;
+  document.getElementById('stat-resolved').textContent = db.filter(d => d.resolved).length;
+  const c = document.getElementById('cards-container');
+  if (!items.length) { c.innerHTML = '<div class="empty">Aucun résultat.</div>'; return; }
+  c.innerHTML = items.map(d => {
+    const isOwner = currentUser && d.user_id === currentUser.id;
+    const authorName = d.author_name || 'Consultant';
+    return `
+    <div class="problem-card" id="card-${d.id}">
+      <div class="card-header" onclick="toggleCard('${d.id}')">
+        <span class="cat-badge ${CAT_CLASSES[d.cat]||'cat-autre'}">${CAT_LABELS[d.cat]||d.cat}</span>
+        <span class="card-title">${d.title}</span>
+        <span class="expand-icon">▾</span>
+      </div>
+      <div class="card-meta">
+        <span class="card-stat">Signalé <span>${d.count||1}x</span></span>
+        <span class="card-stat">Résolution : <span style="color:${d.resolved?'#27500A':'#A32D2D'}">${d.resolved?'en réunion':'escalade'}</span></span>
+        <span class="card-author">✍ ${authorName}</span>
+        ${isOwner ? `<div class="card-actions">
+          <button class="btn-edit" onclick="editEntry('${d.id}')">Modifier</button>
+          <button class="btn-delete" onclick="deleteEntry('${d.id}')">Supprimer</button>
+        </div>` : ''}
+      </div>
+      <div class="card-body">
+        <div class="section-label">Contexte</div>
+        <p style="font-size:13px;color:var(--ink3);line-height:1.6">${d.description||''}</p>
+        <div class="section-label" style="margin-top:12px">Étapes de résolution</div>
+        ${(Array.isArray(d.steps)?d.steps:[]).map((s,i)=>`<div class="solution-step"><div class="step-num">${i+1}</div><div>${s}</div></div>`).join('')}
+        ${d.note ? `<div class="note-box">${d.note}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCard(id) {
+  document.getElementById('card-' + id).classList.toggle('expanded');
+}
+
+// ── EDIT / DELETE ───────────────────────────────────────────────────────────
+function editEntry(id) {
+  const d = db.find(x => x.id === id);
+  if (!d) return;
+  editingId = id;
+  switchTab('saisie', document.querySelectorAll('.tab')[2]);
+  document.getElementById('f-title').value   = d.title || '';
+  document.getElementById('f-cat').value     = d.cat || 'access';
+  document.getElementById('f-resolved').value = d.resolved ? 'true' : 'false';
+  document.getElementById('f-desc').value    = d.description || '';
+  document.getElementById('f-note').value    = d.note || '';
+  steps = Array.isArray(d.steps) && d.steps.length ? [...d.steps] : [''];
+  renderSteps();
+  document.getElementById('edit-banner').style.display = 'block';
+  document.getElementById('cancel-btn').style.display  = 'inline-block';
+  document.getElementById('save-btn').textContent = 'Enregistrer les modifications';
+  document.getElementById('success-msg').style.display = 'none';
+  document.getElementById('error-msg').style.display   = 'none';
+}
+
+function cancelEdit() {
+  editingId = null;
+  initForm();
+}
+
+async function deleteEntry(id) {
+  if (!confirm('Supprimer ce retour définitivement ?')) return;
+  try {
+    const {error} = await SB.from('problems').delete().eq('id', id);
+    if (error) throw error;
+    db = db.filter(x => x.id !== id);
+    renderCards();
+  } catch(e) {
+    alert('Erreur lors de la suppression : ' + e.message);
+  }
+}
+
+// ── SAVE ────────────────────────────────────────────────────────────────────
+async function saveEntry() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { document.getElementById('f-title').focus(); return; }
+  const entry = {
+    cat: document.getElementById('f-cat').value,
+    resolved: document.getElementById('f-resolved').value === 'true',
+    title,
+    description: document.getElementById('f-desc').value.trim(),
+    steps: steps.filter(s => s.trim()),
+    note: document.getElementById('f-note').value.trim(),
+    user_id: currentUser.id,
+    author_name: currentUserName
+  };
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true; btn.textContent = 'Enregistrement...';
+  document.getElementById('success-msg').style.display = 'none';
+  document.getElementById('error-msg').style.display   = 'none';
+  try {
+    if (editingId) {
+      const {data, error} = await SB.from('problems').update(entry).eq('id', editingId).select();
+      if (error) throw error;
+      const idx = db.findIndex(x => x.id === editingId);
+      if (idx > -1) db[idx] = data[0];
+      editingId = null;
+    } else {
+      entry.count = 1;
+      const {data, error} = await SB.from('problems').insert([entry]).select();
+      if (error) throw error;
+      db.unshift(data[0]);
+    }
+    document.getElementById('success-msg').style.display = 'block';
+    initForm();
+  } catch(e) {
+    const em = document.getElementById('error-msg');
+    em.textContent = 'Erreur : ' + e.message;
+    em.style.display = 'block';
+  }
+  btn.disabled = false; btn.textContent = 'Enregistrer ce retour';
+}
+
+// ── FORM ────────────────────────────────────────────────────────────────────
+function initForm() {
+  steps = ['']; renderSteps(); editingId = null;
+  ['f-title','f-desc','f-note'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('success-msg').style.display = 'none';
+  document.getElementById('error-msg').style.display   = 'none';
+  document.getElementById('edit-banner').style.display = 'none';
+  document.getElementById('cancel-btn').style.display  = 'none';
+  document.getElementById('save-btn').textContent = 'Enregistrer ce retour';
+}
+
+function renderSteps() {
+  document.getElementById('steps-builder').innerHTML = steps.map((s, i) => `
+    <div class="step-builder"><div class="step-builder-row">
+      <div class="step-num" style="flex-shrink:0">${i+1}</div>
+      <input type="text" value="${s.replace(/"/g,'&quot;')}" placeholder="Étape ${i+1}..." oninput="steps[${i}]=this.value"/>
+      ${steps.length > 1 ? `<button class="btn-remove" onclick="removeStep(${i})">×</button>` : ''}
+    </div></div>`).join('');
+}
+function addStep()        { steps.push(''); renderSteps(); }
+function removeStep(i)    { steps.splice(i, 1); renderSteps(); }
+
+// ── DIAGNOSTIC ──────────────────────────────────────────────────────────────
+const DIAG = [
+  {id:0,q:"Quel est le type de problème rencontré ?",opts:[
+    {label:"Le fournisseur ne reçoit pas l'email d'invitation",next:1},
+    {label:"Impossible de se connecter (mot de passe / compte bloqué)",next:2},
+    {label:"Connecté mais SPM n'est pas visible",next:3},
+    {label:"SPM visible mais erreur à l'ouverture",next:4},
+    {label:"Changement de contact chez le fournisseur",next:5}
+  ]},
+  {id:1,q:"L'adresse email saisie est-elle correcte ?",opts:[
+    {label:"Oui, correcte",next:11},
+    {label:"Non / pas sûr",result:"Corriger l'adresse dans la fiche fournisseur puis relancer l'invitation depuis la console admin eSupplier."}
+  ]},
+  {id:11,q:"Le fournisseur a-t-il vérifié ses spams ?",opts:[
+    {label:"Oui, rien dans les spams",next:12},
+    {label:"Non",result:"Demander de vérifier les spams. Cause la plus fréquente (80% des cas)."}
+  ]},
+  {id:12,result:"Relancer depuis la console admin (Renvoyer l'invitation). Si toujours absent, vérifier avec l'IT si le domaine expéditeur est bloqué par le pare-feu."},
+  {id:2,q:"Le message indique-t-il 'compte verrouillé' ?",opts:[
+    {label:"Oui, compte verrouillé",result:"Un admin doit déverrouiller depuis le portail. Impossible depuis le compte fournisseur. Puis réinitialiser le mot de passe."},
+    {label:"Non, simple oubli",result:"Utiliser 'Mot de passe oublié' sur la page de connexion eSupplier. Respecter la politique (8 car. min, 1 majuscule, 1 chiffre)."}
+  ]},
+  {id:3,result:"Vérifier le rattachement au groupe de droits SPM. Assigner le rôle 'SPM_User'. Demander de se reconnecter. Si persistant → vider le cache ou utiliser Chrome."},
+  {id:4,result:"Vérifier la date d'expiration du compte (expiré = 403). Contrôler la validité du certificat SSO. Si conforme → escalader au support IT."},
+  {id:5,result:"Mettre à jour l'email dans la fiche fournisseur. Réinitialiser le mot de passe et envoyer une nouvelle invitation. Désactiver l'ancienne adresse."}
+];
+
+function renderDiag(id) {
+  const node = DIAG.find(n => n.id === id);
+  if (!node) return;
+  document.getElementById('diag-progress').style.width = Math.min((diagHistory.length+1)*20, 90)+'%';
+  const c = document.getElementById('diag-container');
+  if (node.result) {
+    document.getElementById('diag-progress').style.width = '100%';
+    c.innerHTML = `<div class="diag-step"><div class="diag-result"><div class="diag-result-title">Solution recommandée</div><div style="font-size:14px;color:#3C3489;line-height:1.6">${node.result}</div></div><button class="diag-back" onclick="resetDiag()">← Recommencer</button></div>`;
+    return;
+  }
+  currentOpts = node.opts;
+  c.innerHTML = `<div class="diag-step"><div class="diag-question">${node.q}</div><div class="diag-options">${node.opts.map((o,i)=>`<button class="diag-opt" onclick="diagNext(${i},${id})"><span class="diag-opt-icon"></span>${o.label}</button>`).join('')}</div>${diagHistory.length?'<button class="diag-back" onclick="diagBack()">← Retour</button>':''}</div>`;
+}
+function diagNext(i, from) {
+  const o = currentOpts[i]; diagHistory.push(from);
+  if (o.result) {
+    document.getElementById('diag-progress').style.width = '100%';
+    document.getElementById('diag-container').innerHTML = `<div class="diag-step"><div class="diag-result"><div class="diag-result-title">Solution recommandée</div><div style="font-size:14px;color:#3C3489;line-height:1.6">${o.result}</div></div><button class="diag-back" onclick="resetDiag()">← Recommencer</button></div>`;
+  } else { renderDiag(o.next); }
+}
+function diagBack()  { renderDiag(diagHistory.pop()); }
+function resetDiag() { diagHistory = []; renderDiag(0); }
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(t, el) {
+  document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('view-' + t).classList.add('active');
+  if (t === 'base')   { if (!editingId) renderCards(); }
+  if (t === 'diag')   { diagHistory = []; renderDiag(0); }
+  if (t === 'saisie') { if (!editingId) initForm(); }
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  const {data: {session}} = await SB.auth.getSession();
+  if (session) {
+    onLogin(session.user);
+  }
+  SB.auth.onAuthStateChange((_event, session) => {
+    if (!session && document.getElementById('app-screen').style.display === 'block') {
+      doLogout();
+    }
+  });
+});
+</script>
+</body>
+</html>
